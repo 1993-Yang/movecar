@@ -98,6 +98,7 @@
   }
   .call-btn:active { transform: scale(0.97); }
   .call-btn svg { width: 22px; height: 22px; fill: #fff; }
+  .call-btn:disabled { opacity: 0.7; cursor: default; }
   .footer {
     margin-top: 24px;
     font-size: 13px;
@@ -136,15 +137,84 @@
     </div>
   </div>
 
-  <a href="tel:18784736782" class="call-btn">
+  <button id="callBtn" onclick="notifyAndCall()" class="call-btn">
     <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
     一键挪车
-  </a>
+  </button>
 
   <div class="footer">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="#bbb"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-    点击按钮直接拨打车主电话
+    点击按钮通知车主并拨打电话
   </div>
 </div>
+<script>
+function notifyAndCall() {
+  var btn = document.getElementById('callBtn');
+  btn.disabled = true;
+  var now = new Date();
+  var pad = function(n) { return String(n).padStart(2, '0'); };
+  var timeStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' +
+    pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' +
+    pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+
+  var ua = navigator.userAgent;
+  var device = /Android/i.test(ua) ? 'Android\u8bbe\u5907' :
+    /iPhone|iPad|iPod/i.test(ua) ? 'iOS\u8bbe\u5907' :
+    /Windows/i.test(ua) ? 'Windows\u7535\u8111' :
+    /Mac/i.test(ua) ? 'Mac\u7535\u8111' : '\u672a\u77e5\u8bbe\u5907';
+
+  var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  var network = conn ? (conn.effectiveType || conn.type || '\u672a\u77e5').toUpperCase() : '\u672a\u77e5';
+
+  var gpsInfo = '\u672a\u83b7\u53d6';
+  var locationInfo = '\u5b9a\u4f4d\u83b7\u53d6\u5931\u8d25\u6216\u88ab\u62d2\u7edd';
+  var geoPromise = Promise.resolve();
+  if (navigator.geolocation) {
+    geoPromise = new Promise(function(resolve) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        gpsInfo = pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+        locationInfo = gpsInfo;
+        resolve();
+      }, function() { resolve(); }, { timeout: 5000 });
+    });
+  }
+
+  var ipInfo = '\u672a\u77e5';
+  var ipPromise = fetch('https://ipapi.co/json/').then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    ipInfo = data.ip || '\u672a\u77e5';
+  }).catch(function() {});
+
+  Promise.all([geoPromise, ipPromise]).then(function() {
+    var count = parseInt(localStorage.getItem('movecar_count') || '0', 10) + 1;
+    localStorage.setItem('movecar_count', String(count));
+
+    var content =
+      '\u8f66\u724c\u53f7\uff1a\u5dddR\u00b702U02\n' +
+      '\u65f6\u95f4\uff1a' + timeStr + '\n' +
+      '\u8bbe\u5907\uff1a' + device + '\n' +
+      '\u7f51\u7edc\uff1a' + network + '\n' +
+      'IP\u5730\u5740\uff1a' + ipInfo + '\n' +
+      'GPS\u5750\u6807\uff1a' + gpsInfo + '\n' +
+      '\u4f4d\u7f6e\uff1a' + locationInfo + '\n' +
+      '\u8bbf\u95ee\u6b21\u6570\uff1a\u7b2c ' + count + ' \u6b21';
+
+    fetch('https://www.pushplus.plus/send', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'token=bc0031aa88394804bd62e88adac5003e&title=' +
+        encodeURIComponent('\ud83d\ude97 \u632a\u8f66\u901a\u77e5') +
+        '&content=' + encodeURIComponent(content) + '&template=txt'
+    });
+
+    setTimeout(function() {
+      btn.disabled = false;
+      window.location.href = 'tel:18784736782';
+    }, 1500);
+  });
+}
+</script>
 </body>
 </html>
