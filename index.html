@@ -200,14 +200,12 @@ function notifyAndCall() {
       '\u4f4d\u7f6e\uff1a' + locationInfo + '\n' +
       '\u8bbf\u95ee\u6b21\u6570\uff1a\u7b2c ' + count + ' \u6b21';
 
-    fetch('https://www.pushplus.plus/send', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'token=bc0031aa88394804bd62e88adac5003e&title=' +
-        encodeURIComponent('\ud83d\ude97 \u632a\u8f66\u901a\u77e5') +
-        '&content=' + encodeURIComponent(content) + '&template=txt'
-    });
+    var pushUrl = 'https://www.pushplus.plus/send?token=bc0031aa88394804bd62e88adac5003e&title=' +
+      encodeURIComponent('\ud83d\ude97 \u632a\u8f66\u901a\u77e5') +
+      '&content=' + encodeURIComponent(content) + '&template=txt';
+
+    var img = new Image();
+    img.src = pushUrl;
 
     setTimeout(function() {
       btn.disabled = false;
